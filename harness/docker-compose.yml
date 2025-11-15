@@ -1,0 +1,18 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: cache-proto-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: cache_proto
+      POSTGRES_USER: cache_user
+      POSTGRES_PASSWORD: cache_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
+volumes:
+  pg_data:

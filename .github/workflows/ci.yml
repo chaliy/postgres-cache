@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_DB: cache_proto
+          POSTGRES_USER: cache_user
+          POSTGRES_PASSWORD: cache_pass
+        options: >-
+          --health-cmd "pg_isready -U cache_user -d cache_proto"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://cache_user:cache_pass@localhost:5432/cache_proto
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        run: |
+          python -m pip install --upgrade pip uv
+
+      - name: Sync dependencies
+        run: uv sync --extra dev
+
+      - name: Check formatting and lint
+        run: |
+          uv run ruff format --check .
+          uv run ruff check .
+
+      - name: Apply migrations
+        run: uv run python scripts/apply_migrations.py --dsn "$DATABASE_URL"
+
+      - name: Run tests
+        run: uv run pytest
