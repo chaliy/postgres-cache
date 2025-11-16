@@ -6,6 +6,11 @@ import pytest
 from asyncpg.exceptions import TooManyConnectionsError
 
 from postgres_cache import CacheSettings, PostgresCache
+from postgres_cache.postgres_cache import _decode_notification_payload
+
+
+def _payload(event_code: str, version: int, key: str) -> str:
+    return f"{event_code}{version}|{key.encode('utf-8').hex()}"
 
 
 @pytest.mark.asyncio
@@ -97,3 +102,33 @@ async def test_connect_reports_too_many_connections(monkeypatch, db_dsn: str) ->
     with pytest.raises(RuntimeError) as excinfo:
         await cache.connect()
     assert "disable_notiffy" in str(excinfo.value)
+
+
+def test_decode_notification_payload_roundtrip() -> None:
+    payload = _payload("u", 42, "alpha")
+    decoded = _decode_notification_payload(payload)
+    assert decoded == ("alpha", 42, False)
+
+
+def test_decode_notification_payload_for_delete() -> None:
+    payload = _payload("d", 3, "victim")
+    decoded = _decode_notification_payload(payload)
+    assert decoded == ("victim", 3, True)
+
+
+def test_decode_notification_payload_rejects_garbage() -> None:
+    assert _decode_notification_payload("bad-payload") is None
+
+
+def test_process_notification_batch_drops_local_cache_entries() -> None:
+    cache = PostgresCache(CacheSettings(dsn="postgresql://localhost/test"))
+    cache._local_cache.set("victim", {"value": 1}, version=1, ttl_seconds=None)  # type: ignore[attr-defined]
+    cache._local_cache.set("stale", {"value": 1}, version=1, ttl_seconds=None)  # type: ignore[attr-defined]
+
+    cache._process_notification_batch([
+        _payload("d", 1, "victim"),
+        _payload("u", 2, "stale"),
+    ])
+
+    assert cache._local_cache.get("victim") is None  # type: ignore[attr-defined]
+    assert cache._local_cache.get("stale") is None  # type: ignore[attr-defined]

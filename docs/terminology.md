@@ -3,7 +3,7 @@
 ## PostgreSQL notify channel
 
 - `CacheSettings.notify_channel` sets the LISTEN/NOTIFY channel name.
-- Every write/delete triggers the broadcast trigger, which publishes a JSON payload to that channel (defaults to `cache_events`).
+- Every write/delete triggers the broadcast trigger, which publishes a lightweight text payload (event flag + version + hex-encoded key) to that channel (defaults to `cache_events`).
 - Each `PostgresCache` instance maintains a dedicated LISTEN connection; when a notification arrives, the local in-memory cache evicts or refreshes the associated key.
 - Notifications can be disabled entirely by setting `disable_notiffy=True`, which saves two database connections per client at the expense of cross-node invalidations.
 
