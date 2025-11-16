@@ -18,5 +18,4 @@ Project goal: implement a distributed cache solution that uses PostgreSQL as the
 
 ## PR instructions
 
-- Title format: <Title>
 - Always run `make lint-and-format` before submitting a PR

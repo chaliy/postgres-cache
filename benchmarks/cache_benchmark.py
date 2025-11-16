@@ -171,6 +171,8 @@ class BenchmarkConfig:
     ttl: float
     writer_jitter: float = 0.005
     reader_jitter: float = 0.002
+    network_latency: float = 0.0
+    network_jitter: float = 0.0
 
 
 async def run_benchmark(backend: BenchmarkBackend, config: BenchmarkConfig) -> BenchmarkSummary:
@@ -183,6 +185,17 @@ async def run_benchmark(backend: BenchmarkBackend, config: BenchmarkConfig) -> B
     readers = clients[config.writers : config.writers + config.readers]
     keyspace = [f"benchmark-key-{i}" for i in range(config.keyspace)]
 
+    async def _maybe_emulate_network() -> None:
+        base_delay = config.network_latency
+        jitter = config.network_jitter
+        if base_delay <= 0.0 and jitter <= 0.0:
+            return
+        delay = base_delay
+        if jitter > 0.0:
+            delay += random.uniform(0.0, jitter)
+        if delay > 0.0:
+            await asyncio.sleep(delay)
+
     async def writer_task(client: BenchmarkClient, idx: int) -> TaskResult:
         latencies: List[float] = []
         started = time.perf_counter()
@@ -190,6 +203,7 @@ async def run_benchmark(backend: BenchmarkBackend, config: BenchmarkConfig) -> B
             key = random.choice(keyspace)
             payload = {"writer": idx, "iteration": iteration, "ts": time.time()}
             op_start = time.perf_counter()
+            await _maybe_emulate_network()
             await client.set(key, payload, ttl_seconds=config.ttl)
             latencies.append(time.perf_counter() - op_start)
             if config.writer_jitter:
@@ -211,6 +225,7 @@ async def run_benchmark(backend: BenchmarkBackend, config: BenchmarkConfig) -> B
         for _ in range(config.read_iterations):
             key = random.choice(keyspace)
             op_start = time.perf_counter()
+            await _maybe_emulate_network()
             value = await client.get(key)
             latencies.append(time.perf_counter() - op_start)
             if value is not None:
@@ -352,6 +367,18 @@ def parse_args() -> argparse.Namespace:
         "--keyspace", type=int, default=64, help="Number of cache keys in the rotation"
     )
     parser.add_argument("--ttl", type=float, default=5.0, help="TTL for all writes in seconds")
+    parser.add_argument(
+        "--network-latency-ms",
+        type=float,
+        default=0.0,
+        help="Artificial latency (in milliseconds) added before each request",
+    )
+    parser.add_argument(
+        "--network-jitter-ms",
+        type=float,
+        default=0.0,
+        help="Additional random latency up to this many milliseconds per request",
+    )
     return parser.parse_args()
 
 
@@ -364,6 +391,8 @@ async def async_main() -> None:
         read_iterations=args.read_iterations,
         keyspace=args.keyspace,
         ttl=args.ttl,
+        network_latency=max(args.network_latency_ms, 0.0) / 1000.0,
+        network_jitter=max(args.network_jitter_ms, 0.0) / 1000.0,
     )
 
     backends: List[BenchmarkBackend] = []
