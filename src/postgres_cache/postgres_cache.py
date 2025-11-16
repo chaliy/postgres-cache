@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-import json
 import logging
 import time
 from datetime import datetime, timedelta, timezone
@@ -41,7 +40,6 @@ class PostgresCache:
         self._local_cache = ClientSecondaryCache(self.settings.local_max_entries)
         self._schema: SchemaNames = resolve_schema_names(self.settings.schema_prefix)
         self._notification_task: asyncio.Task[None] | None = None
-        self._notification_queue: asyncio.Queue[str] | None = None
         self._notifications_enabled = False
 
     async def __aenter__(self) -> "PostgresCache":
@@ -169,23 +167,18 @@ class PostgresCache:
             return
         if not self._local_cache.enabled or len(self._local_cache) == 0:
             return
-        latest_events: dict[str, tuple[str, int]] = {}
+        latest_events: dict[str, tuple[bool, int]] = {}
         for payload in payloads:
-            try:
-                message = json.loads(payload)
-            except json.JSONDecodeError:
+            decoded = _decode_notification_payload(payload)
+            if not decoded:
                 logger.warning("ignoring invalid notification payload: %s", payload)
                 continue
-            key = message.get("key")
-            version = message.get("version")
-            event = message.get("event")
-            if not key or version is None or event is None:
-                continue
-            latest_events[key] = (event, int(version))
+            key, version, is_delete = decoded
+            latest_events[key] = (is_delete, version)
         if not latest_events:
             return
-        for key, (event, version) in latest_events.items():
-            if event == "DELETE":
+        for key, (is_delete, version) in latest_events.items():
+            if is_delete:
                 self._local_cache.delete(key)
             else:
                 self._local_cache.drop_if_stale(key, version)
@@ -341,3 +334,49 @@ class _NotificationListener:
             self._queue.put_nowait(payload)
         except asyncio.QueueFull:
             logger.warning("Notification queue full; dropping message")
+
+
+_PAYLOAD_SEPARATOR = "\x1f"
+_ESCAPED_SEPARATOR = _PAYLOAD_SEPARATOR * 2
+
+
+def _decode_notification_payload(payload: str) -> tuple[str, int, bool] | None:
+    if not payload:
+        return None
+    event_code = payload[0]
+    rest = payload[1:]
+    if not rest:
+        return None
+    sep_index = rest.find(_PAYLOAD_SEPARATOR)
+    if sep_index == -1:
+        return _decode_hex_payload(event_code, rest)
+    version_part = rest[:sep_index]
+    key_part = rest[sep_index + 1 :]
+    if not version_part:
+        return None
+    try:
+        version = int(version_part)
+    except ValueError:
+        return None
+    key = key_part.replace(_ESCAPED_SEPARATOR, _PAYLOAD_SEPARATOR)
+    is_delete = event_code == "d"
+    return key, version, is_delete
+
+
+def _decode_hex_payload(event_code: str, payload_rest: str) -> tuple[str, int, bool] | None:
+    try:
+        version_part, key_hex = payload_rest.split("|", 1)
+    except ValueError:
+        return None
+    if not version_part or not key_hex:
+        return None
+    try:
+        version = int(version_part)
+    except ValueError:
+        return None
+    try:
+        key_bytes = bytes.fromhex(key_hex)
+        key = key_bytes.decode("utf-8")
+    except (ValueError, UnicodeDecodeError):
+        return None
+    return key, version, event_code == "d"

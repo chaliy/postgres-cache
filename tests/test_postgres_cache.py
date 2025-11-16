@@ -6,6 +6,14 @@ import pytest
 from asyncpg.exceptions import TooManyConnectionsError
 
 from postgres_cache import CacheSettings, PostgresCache
+from postgres_cache.postgres_cache import _decode_notification_payload
+
+_SEP = "\x1f"
+
+
+def _payload(event_code: str, version: int, key: str) -> str:
+    escaped = key.replace(_SEP, _SEP + _SEP)
+    return f"{event_code}{version}{_SEP}{escaped}"
 
 
 @pytest.mark.asyncio
@@ -97,3 +105,46 @@ async def test_connect_reports_too_many_connections(monkeypatch, db_dsn: str) ->
     with pytest.raises(RuntimeError) as excinfo:
         await cache.connect()
     assert "disable_notiffy" in str(excinfo.value)
+
+
+def test_decode_notification_payload_roundtrip() -> None:
+    payload = _payload("u", 42, "alpha")
+    decoded = _decode_notification_payload(payload)
+    assert decoded == ("alpha", 42, False)
+
+
+def test_decode_notification_payload_for_delete() -> None:
+    payload = _payload("d", 3, "victim")
+    decoded = _decode_notification_payload(payload)
+    assert decoded == ("victim", 3, True)
+
+
+def test_decode_notification_payload_rejects_garbage() -> None:
+    assert _decode_notification_payload("bad-payload") is None
+
+
+def test_process_notification_batch_drops_local_cache_entries() -> None:
+    cache = PostgresCache(CacheSettings(dsn="postgresql://localhost/test"))
+    cache._local_cache.set("victim", {"value": 1}, version=1, ttl_seconds=None)  # type: ignore[attr-defined]
+    cache._local_cache.set("stale", {"value": 1}, version=1, ttl_seconds=None)  # type: ignore[attr-defined]
+
+    cache._process_notification_batch([
+        _payload("d", 1, "victim"),
+        _payload("u", 2, "stale"),
+    ])
+
+    assert cache._local_cache.get("victim") is None  # type: ignore[attr-defined]
+    assert cache._local_cache.get("stale") is None  # type: ignore[attr-defined]
+
+
+def test_decode_notification_payload_handles_separator_in_keys() -> None:
+    key = f"prefix{_SEP}suffix"
+    payload = _payload("u", 7, key)
+    decoded = _decode_notification_payload(payload)
+    assert decoded == (key, 7, False)
+
+
+def test_decode_notification_payload_handles_legacy_hex_format() -> None:
+    payload = f"u12|{'legacy'.encode('utf-8').hex()}"
+    decoded = _decode_notification_payload(payload)
+    assert decoded == ("legacy", 12, False)

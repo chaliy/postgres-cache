@@ -126,7 +126,43 @@ MIGRATIONS: list[_Migration] = [
             $$ LANGUAGE plpgsql;
             """,
         ),
-    )
+    ),
+    _Migration(
+        version=2,
+        statements=(
+            """
+            CREATE OR REPLACE FUNCTION {broadcast_function}()
+            RETURNS trigger AS $$
+            DECLARE
+                rec {entries_table}%ROWTYPE;
+                target_channel text := COALESCE(TG_ARGV[0], {notify_channel_literal});
+                event_code text;
+                payload text;
+                separator text := E'\x1f';
+            BEGIN
+                IF TG_OP = 'DELETE' THEN
+                    rec := OLD;
+                    event_code := 'd';
+                ELSE
+                    rec := NEW;
+                    event_code := 'u';
+                END IF;
+
+                payload := event_code || rec.version::text || separator ||
+                    replace(rec.cache_key, separator, separator || separator);
+
+                PERFORM pg_notify(target_channel, payload);
+
+                IF TG_OP = 'DELETE' THEN
+                    RETURN OLD;
+                ELSE
+                    RETURN NEW;
+                END IF;
+            END;
+            $$ LANGUAGE plpgsql;
+            """,
+        ),
+    ),
 ]
 
 
