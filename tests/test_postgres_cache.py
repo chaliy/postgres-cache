@@ -9,8 +9,12 @@ from postgres_cache import CacheSettings, PostgresCache
 from postgres_cache.postgres_cache import _decode_notification_payload
 
 
+_SEP = "\x1f"
+
+
 def _payload(event_code: str, version: int, key: str) -> str:
-    return f"{event_code}{version}|{key.encode('utf-8').hex()}"
+    escaped = key.replace(_SEP, _SEP + _SEP)
+    return f"{event_code}{version}{_SEP}{escaped}"
 
 
 @pytest.mark.asyncio
@@ -132,3 +136,16 @@ def test_process_notification_batch_drops_local_cache_entries() -> None:
 
     assert cache._local_cache.get("victim") is None  # type: ignore[attr-defined]
     assert cache._local_cache.get("stale") is None  # type: ignore[attr-defined]
+
+
+def test_decode_notification_payload_handles_separator_in_keys() -> None:
+    key = f"prefix{_SEP}suffix"
+    payload = _payload("u", 7, key)
+    decoded = _decode_notification_payload(payload)
+    assert decoded == (key, 7, False)
+
+
+def test_decode_notification_payload_handles_legacy_hex_format() -> None:
+    payload = f"u12|{'legacy'.encode('utf-8').hex()}"
+    decoded = _decode_notification_payload(payload)
+    assert decoded == ("legacy", 12, False)

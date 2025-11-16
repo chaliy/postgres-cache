@@ -40,7 +40,6 @@ class PostgresCache:
         self._local_cache = ClientSecondaryCache(self.settings.local_max_entries)
         self._schema: SchemaNames = resolve_schema_names(self.settings.schema_prefix)
         self._notification_task: asyncio.Task[None] | None = None
-        self._notification_queue: asyncio.Queue[str] | None = None
         self._notifications_enabled = False
 
     async def __aenter__(self) -> "PostgresCache":
@@ -337,6 +336,10 @@ class _NotificationListener:
             logger.warning("Notification queue full; dropping message")
 
 
+_PAYLOAD_SEPARATOR = "\x1f"
+_ESCAPED_SEPARATOR = _PAYLOAD_SEPARATOR * 2
+
+
 def _decode_notification_payload(payload: str) -> tuple[str, int, bool] | None:
     if not payload:
         return None
@@ -344,8 +347,25 @@ def _decode_notification_payload(payload: str) -> tuple[str, int, bool] | None:
     rest = payload[1:]
     if not rest:
         return None
+    sep_index = rest.find(_PAYLOAD_SEPARATOR)
+    if sep_index == -1:
+        return _decode_hex_payload(event_code, rest)
+    version_part = rest[:sep_index]
+    key_part = rest[sep_index + 1 :]
+    if not version_part:
+        return None
     try:
-        version_part, key_hex = rest.split("|", 1)
+        version = int(version_part)
+    except ValueError:
+        return None
+    key = key_part.replace(_ESCAPED_SEPARATOR, _PAYLOAD_SEPARATOR)
+    is_delete = event_code == "d"
+    return key, version, is_delete
+
+
+def _decode_hex_payload(event_code: str, payload_rest: str) -> tuple[str, int, bool] | None:
+    try:
+        version_part, key_hex = payload_rest.split("|", 1)
     except ValueError:
         return None
     if not version_part or not key_hex:
@@ -359,5 +379,4 @@ def _decode_notification_payload(payload: str) -> tuple[str, int, bool] | None:
         key = key_bytes.decode("utf-8")
     except (ValueError, UnicodeDecodeError):
         return None
-    is_delete = event_code == "d"
-    return key, version, is_delete
+    return key, version, event_code == "d"
