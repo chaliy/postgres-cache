@@ -8,7 +8,6 @@ from asyncpg.exceptions import TooManyConnectionsError
 from postgres_cache import CacheSettings, PostgresCache
 from postgres_cache.postgres_cache import _decode_notification_payload
 
-
 _SEP = "\x1f"
 
 

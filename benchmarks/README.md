@@ -23,11 +23,18 @@ make benchmark
 The target will:
 1. Launch the services declared in [`compose.yaml`](compose.yaml) (Postgres + Valkey).
 2. Run `benchmarks/cache_benchmark.py`, which hits the following backends by default:
-   - `postgres` – full feature set.
-   - `postgres-no-local-cache` – disables the client-side cache (`local_max_entries=0`).
-   - `postgres-no-notify` – disables LISTEN/NOTIFY fan-out (`disable_notiffy=True`).
+   - `postgres-cache` – full feature set.
+   - `postgres-no-local-cache` – disables the client-side cache (`local_max_entries=0`),
+     effectively issuing direct Postgres reads without invalidating values coming from
+     the backend.
+   - `postgres-no-notify` – disables LISTEN/NOTIFY fan-out (`disable_notiffy=True`),
+     so backend invalidation is turned off and only local TTL expiry applies.
    - `valkey` – native Valkey/Redis.
 3. Tear the containers down when the benchmark completes (even if it fails).
+
+Need to reset the Docker state completely? `make benchmark-cleanup` runs
+`docker compose -f benchmarks/compose.yaml down -v --remove-orphans`, removing the
+Postgres and Valkey containers along with their volumes.
 
 ## Manual run
 
@@ -47,7 +54,7 @@ and `redis://localhost:16379/0`), which avoids clashing with the load-test harne
 To benchmark a subset of backends use the `--backends` flag:
 
 ```bash
-python benchmarks/cache_benchmark.py --backends postgres valkey
+python benchmarks/cache_benchmark.py --backends postgres-cache valkey
 ```
 
 Additional flags (`--writers`, `--readers`, `--ttl`, `--write-iterations`, `--read-iterations`,

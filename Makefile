@@ -1,4 +1,4 @@
-.PHONY: lint lint-and-format format tests examples-basic-usage examples-fastapi-api-cache harness-load-test benchmark
+.PHONY: lint lint-and-format format tests examples-basic-usage examples-fastapi-api-cache harness-load-test benchmark benchmark-cleanup
 
 lint-and-format: format lint
 
@@ -22,6 +22,9 @@ harness-load-test:
 
 benchmark:
 	bash -c 'set -euo pipefail; \
- 		docker compose -f benchmarks/compose.yaml up -d --wait --wait-timeout 120; \
-  		trap "docker compose -f benchmarks/compose.yaml down" EXIT; \
-  		python benchmarks/cache_benchmark.py'
+	        docker compose -f benchmarks/compose.yaml up -d --wait --wait-timeout 120; \
+	        trap "docker compose -f benchmarks/compose.yaml down" EXIT; \
+	        python benchmarks/cache_benchmark.py'
+
+benchmark-cleanup:
+	docker compose -f benchmarks/compose.yaml down -v --remove-orphans

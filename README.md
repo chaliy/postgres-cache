@@ -87,7 +87,7 @@ See [`harness/README.md`](harness/README.md) for the load-test instructions and 
 
 ## Benchmarking
 
-See [`benchmarks/README.md`](benchmarks/README.md) for installation steps, CLI flags, and instructions for adding more backends to the report.
+See [`benchmarks/README.md`](benchmarks/README.md) for installation steps, CLI flags, and instructions for adding more backends to the report. Note that these numbers come from an intentionally narrow, unrealistic benchmark that ignores network latency to focus purely on cache/DB interactions on the same host.
 
 ### Benchmark summary
 
@@ -98,6 +98,8 @@ postgres-no-local-cache | 2.850           | 4.583          | 2882.4      | 1.798
 postgres-no-notify      | 1.297           | 2.417          | 4038.9      | 0.190          | 1.466         | 24938.3    | 98.3%
 valkey                  | 0.432           | 0.564          | 4963.5      | 0.408          | 0.542         | 19431.2    | 99.3%
 
+`postgres-no-local-cache` disables the client-side cache (`local_max_entries=0`), so the benchmark issues direct Postgres reads without invalidating values pulled from the backend.
+`postgres-no-notify` turns off LISTEN/NOTIFY fan-out (`disable_notiffy=True`), which means no backend invalidations occur and only the local TTL policy expires entries.
 Interpretation: "optimizations" implemented in this libray, does not provide any advantage.
 
 ## License
