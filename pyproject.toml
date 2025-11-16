@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "postgres-cache"
-version = "0.1.0"
+version = "0.1.1"
 description = "PostgreSQL as a cache for Python applications"
 readme = "README.md"
 authors = [{name = "Mykhailo Chalyi"}]
