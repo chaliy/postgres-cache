@@ -24,6 +24,9 @@ examples = [
   "fastapi>=0.111",
   "uvicorn>=0.30"
 ]
+benchmarks = [
+  "redis>=5.0",
+]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
@@ -33,7 +36,7 @@ asyncio_default_fixture_loop_scope = "function"
 [tool.ruff]
 target-version = "py311"
 line-length = 100
-src = ["src", "tests", "examples", "scripts"]
+src = ["src", "tests", "examples", "scripts", "benchmarks"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I"]

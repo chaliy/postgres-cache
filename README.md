@@ -81,9 +81,25 @@ Python 3.11+ and uv are required for local development.
 - `make harness-load-test` – launch the load harness against a local Postgres.
 - `make examples-basic-usage` / `make examples-fastapi-api-cache` – run example scripts.
 
-## Load harness & schema
+## Load testing
 
 See [`harness/README.md`](harness/README.md) for the load-test instructions and `make harness-load-test` helper.
+
+## Benchmarking
+
+See [`benchmarks/README.md`](benchmarks/README.md) for installation steps, CLI flags, and instructions for adding more backends to the report.
+
+### Benchmark summary
+
+backend | write mean (ms) | write p95 (ms) | write ops/s | read mean (ms) | read p95 (ms) | read ops/s | hit rate
+------|---------|----------------|-------------|---------------|------------|---------|---------
+postgres                          | 11.483          | 23.781         | 1132.8      | 2.028          | 4.799         | 9944.8     | 95.8%   
+postgres-no-local-cache           | 13.839          | 33.596         | 966.6       | 3.327          | 6.194         | 7068.4     | 96.4%   
+postgres-no-notify                | 1.440           | 2.981          | 3888.9      | 0.184          | 1.590         | 24802.6    | 98.3%   
+postgres-no-local-cache-no-notify | 3.225           | 5.777          | 2688.6      | 1.961          | 3.044         | 10351.0    | 98.3%   
+valkey                            | 0.515           | 0.691          | 4754.1      | 0.464          | 0.626         | 19030.5    | 99.2% 
+
+Interpretation: "optimizations" implemented in this libray, does not provide any advantage.
 
 ## License
 
