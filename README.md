@@ -1,8 +1,10 @@
+[![Stand With Ukraine](https://raw.githubusercontent.com/vshymanskyy/StandWithUkraine/main/banner2-direct.svg)](https://vshymanskyy.github.io/StandWithUkraine/)
+
 # postgres-cache
 
 Postgres Cache is a single purpose library to cover a need of a distributed cache and not willing to use Redis/Valkey/Memcached or other external caching systems.
 
-Idea of the library is to store persisted cache in Postgres, and utilize couple of specific optimizations to make it behave comparable with other caching solutions.
+Idea of the library is to store persisted cache in Postgres, and utilize couple of specific optimizations to make it behave comparable with other caching solutions. Local in-memory cache with invalidation via LISTEN/NOTIFY are among those optimizations.
 
 ## Features
 
@@ -21,6 +23,12 @@ Idea of the library is to store persisted cache in Postgres, and utilize couple 
 - **Load harness** – runnable script that spins up many clients to assert read consistency and provide latency stats.
 
 ## Usage
+
+Install the library from PyPI:
+
+```bash
+pip install postgres-cache
+```
 
 ### PostgreSQL-backed cache
 
@@ -64,10 +72,19 @@ async with NullCache() as cache:
     assert await cache.get("noop") is None
 ```
 
+## Development setup
+
+Python 3.11+ and uv are required for local development.
+
+- `make tests` – run the pytest suite (requires Postgres running via `docker compose up`).
+- `make lint-and-format` – format & lint code
+- `make harness-load-test` – launch the load harness against a local Postgres.
+- `make examples-basic-usage` / `make examples-fastapi-api-cache` – run example scripts.
+
+
 ## Load harness & schema
 
-- See [`harness/README.md`](harness/README.md) for the load-test instructions and `make harness-load-test` helper.
-- Schema details (tables/triggers/functions) live in the same document so the operational guidance stays in one place.
+See [`harness/README.md`](harness/README.md) for the load-test instructions and `make harness-load-test` helper.
 
 ## License
 
