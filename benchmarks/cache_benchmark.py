@@ -23,8 +23,8 @@ try:
 except ModuleNotFoundError:  # pragma: no cover - redis is declared as a dependency
     aioredis = None  # type: ignore
 
-DEFAULT_POSTGRES_DSN = "postgresql://cache_user:cache_pass@localhost:5432/cache_proto"
-DEFAULT_VALKEY_URL = "redis://localhost:6379/0"
+DEFAULT_POSTGRES_DSN = "postgresql://cache_user:cache_pass@localhost:15432/cache_proto"
+DEFAULT_VALKEY_URL = "redis://localhost:16379/0"
 
 
 class BenchmarkClient(Protocol):

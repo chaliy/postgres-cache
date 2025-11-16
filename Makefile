@@ -21,7 +21,7 @@ harness-load-test:
 	python harness/load_test.py
 
 benchmark:
-bash -c 'set -euo pipefail; \
-  docker compose -f benchmarks/compose.yaml up -d; \
-  trap "docker compose -f benchmarks/compose.yaml down" EXIT; \
-  python benchmarks/cache_benchmark.py'
+	bash -c 'set -euo pipefail; \
+  		docker compose -f benchmarks/compose.yaml up -d; \
+  		trap "docker compose -f benchmarks/compose.yaml down" EXIT; \
+  		python benchmarks/cache_benchmark.py'
