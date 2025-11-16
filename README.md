@@ -87,17 +87,19 @@ See [`harness/README.md`](harness/README.md) for the load-test instructions and 
 
 ## Benchmarking
 
-See [`benchmarks/README.md`](benchmarks/README.md) for installation steps, CLI flags, and instructions for adding more backends to the report.
+See [`benchmarks/README.md`](benchmarks/README.md) for installation steps, CLI flags, and instructions for adding more backends to the report. Note that these numbers come from an intentionally narrow, unrealistic benchmark that ignores network latency to focus purely on cache/DB interactions on the same host.
 
 ### Benchmark summary
 
-backend | write mean (ms) | write p95 (ms) | write ops/s | read mean (ms) | read p95 (ms) | read ops/s | hit rate
-------|---------|----------------|-------------|---------------|------------|---------|---------
-postgres                          | 11.483          | 23.781         | 1132.8      | 2.028          | 4.799         | 9944.8     | 95.8%   
-postgres-no-local-cache           | 13.839          | 33.596         | 966.6       | 3.327          | 6.194         | 7068.4     | 96.4%   
-postgres-no-notify                | 1.440           | 2.981          | 3888.9      | 0.184          | 1.590         | 24802.6    | 98.3%   
-valkey                            | 0.515           | 0.691          | 4754.1      | 0.464          | 0.626         | 19030.5    | 99.2% 
+| backend                 | write mean (ms) | write p95 (ms) | write ops/s | read mean (ms) | read p95 (ms) | read ops/s | hit rate |
+|-------------------------|-----------------|----------------|-------------|----------------|---------------|------------|----------|
+| postgres-cache          | 12.629          | 28.259         | 1042.9      | 2.168          | 5.503         | 9507.5     | 96.1%    |
+| postgres-no-local-cache | 4.173           | 9.226          | 2317.1      | 1.893          | 3.133         | 10569.5    | 98.0%    |
+| postgres-no-notify      | 1.442           | 2.960          | 3906.6      | 0.218          | 1.726         | 24365.6    | 98.3%    |
+| valkey                  | 0.488           | 0.681          | 4772.0      | 0.451          | 0.652         | 19162.8    | 99.3%    |
 
+`postgres-no-local-cache` disables the client-side cache (`local_max_entries=0`), so the benchmark issues direct Postgres reads without invalidating values pulled from the backend.
+`postgres-no-notify` turns off LISTEN/NOTIFY fan-out (`disable_notiffy=True`), which means no backend invalidations occur and only the local TTL policy expires entries.
 Interpretation: "optimizations" implemented in this libray, does not provide any advantage.
 
 ## License

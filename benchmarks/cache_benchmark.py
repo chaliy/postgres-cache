@@ -119,7 +119,7 @@ class PostgresBackend:
     def __init__(
         self,
         dsn: str,
-        name: str = "postgres",
+        name: str = "postgres-cache",
         *,
         disable_local_cache: bool = False,
         disable_notify: bool = False,
@@ -329,13 +329,13 @@ def parse_args() -> argparse.Namespace:
         "--backends",
         nargs="+",
         choices=[
-            "postgres",
+            "postgres-cache",
             "postgres-no-local-cache",
             "postgres-no-notify",
             "valkey",
         ],
         default=[
-            "postgres",
+            "postgres-cache",
             "postgres-no-local-cache",
             "postgres-no-notify",
             "valkey",
@@ -368,7 +368,7 @@ async def async_main() -> None:
 
     backends: List[BenchmarkBackend] = []
     for backend_name in args.backends:
-        if backend_name == "postgres":
+        if backend_name == "postgres-cache":
             backends.append(PostgresBackend(args.postgres_dsn))
         elif backend_name == "postgres-no-local-cache":
             backends.append(
