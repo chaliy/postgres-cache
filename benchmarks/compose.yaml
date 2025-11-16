@@ -1,0 +1,24 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: cache_user
+      POSTGRES_PASSWORD: cache_pass
+      POSTGRES_DB: cache_proto
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cache_user"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  valkey:
+    image: valkey/valkey:8.0
+    ports:
+      - "6379:6379"
+    command: valkey-server --save '' --appendonly no
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5

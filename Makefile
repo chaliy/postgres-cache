@@ -1,4 +1,4 @@
-.PHONY: lint lint-and-format format tests examples-basic-usage examples-fastapi-api-cache harness-load-test
+.PHONY: lint lint-and-format format tests examples-basic-usage examples-fastapi-api-cache harness-load-test benchmark
 
 lint-and-format: format lint
 
@@ -19,3 +19,9 @@ examples-fastapi-api-cache:
 
 harness-load-test:
 	python harness/load_test.py
+
+benchmark:
+bash -c 'set -euo pipefail; \
+  docker compose -f benchmarks/compose.yaml up -d; \
+  trap "docker compose -f benchmarks/compose.yaml down" EXIT; \
+  python benchmarks/cache_benchmark.py'
