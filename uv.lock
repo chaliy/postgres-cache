@@ -148,7 +148,7 @@ wheels = [
 ]
 
 [[package]]
-name = "postgres-cache-client"
+name = "postgres-cache"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
