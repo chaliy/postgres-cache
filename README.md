@@ -96,7 +96,6 @@ backend | write mean (ms) | write p95 (ms) | write ops/s | read mean (ms) | read
 postgres                          | 11.483          | 23.781         | 1132.8      | 2.028          | 4.799         | 9944.8     | 95.8%   
 postgres-no-local-cache           | 13.839          | 33.596         | 966.6       | 3.327          | 6.194         | 7068.4     | 96.4%   
 postgres-no-notify                | 1.440           | 2.981          | 3888.9      | 0.184          | 1.590         | 24802.6    | 98.3%   
-postgres-no-local-cache-no-notify | 3.225           | 5.777          | 2688.6      | 1.961          | 3.044         | 10351.0    | 98.3%   
 valkey                            | 0.515           | 0.691          | 4754.1      | 0.464          | 0.626         | 19030.5    | 99.2% 
 
 Interpretation: "optimizations" implemented in this libray, does not provide any advantage.

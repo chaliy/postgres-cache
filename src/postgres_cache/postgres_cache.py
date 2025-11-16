@@ -42,6 +42,7 @@ class PostgresCache:
         self._schema: SchemaNames = resolve_schema_names(self.settings.schema_prefix)
         self._notification_task: asyncio.Task[None] | None = None
         self._notification_queue: asyncio.Queue[str] | None = None
+        self._notifications_enabled = False
 
     async def __aenter__(self) -> "PostgresCache":
         await self.connect()
@@ -70,7 +71,11 @@ class PostgresCache:
                 "Consider lowering setting disable_notiffy=True to conserve connections."
             ) from exc
 
-        if self.settings.disable_notiffy:
+        cache_wants_notifications = self._local_cache.enabled
+        self._notifications_enabled = (
+            cache_wants_notifications and not self.settings.disable_notiffy
+        )
+        if not self._notifications_enabled:
             self._notification_queue = None
             self._listener = None
             self._notification_task = None
@@ -99,6 +104,7 @@ class PostgresCache:
             self._pool = None
         if self._notification_queue:
             self._notification_queue = None
+        self._notifications_enabled = False
 
     async def get(self, key: str) -> Any | None:
         entry = self._local_cache.get(key)
@@ -147,24 +153,42 @@ class PostgresCache:
             return
         try:
             while True:
-                payload = await self._notification_queue.get()
-                try:
-                    message = json.loads(payload)
-                except json.JSONDecodeError:
-                    logger.warning("ignoring invalid notification payload: %s", payload)
-                    continue
-                key = message.get("key")
-                version = message.get("version")
-                event = message.get("event")
-                if not key or version is None:
-                    continue
-                if event == "DELETE":
-                    self._local_cache.delete(key)
-                else:
-                    self._local_cache.drop_if_stale(key, int(version))
+                batch = [await self._notification_queue.get()]
+                while True:
+                    try:
+                        batch.append(self._notification_queue.get_nowait())
+                    except asyncio.QueueEmpty:
+                        break
+                self._process_notification_batch(batch)
         except asyncio.CancelledError:
             logger.debug("notification worker cancelled")
             raise
+
+    def _process_notification_batch(self, payloads: list[str]) -> None:
+        if not payloads:
+            return
+        if not self._local_cache.enabled or len(self._local_cache) == 0:
+            return
+        latest_events: dict[str, tuple[str, int]] = {}
+        for payload in payloads:
+            try:
+                message = json.loads(payload)
+            except json.JSONDecodeError:
+                logger.warning("ignoring invalid notification payload: %s", payload)
+                continue
+            key = message.get("key")
+            version = message.get("version")
+            event = message.get("event")
+            if not key or version is None or event is None:
+                continue
+            latest_events[key] = (event, int(version))
+        if not latest_events:
+            return
+        for key, (event, version) in latest_events.items():
+            if event == "DELETE":
+                self._local_cache.delete(key)
+            else:
+                self._local_cache.drop_if_stale(key, version)
 
     async def _fetch_remote(
         self, key: str, conn: asyncpg.Connection | None = None
@@ -223,7 +247,7 @@ class PostgresCache:
                     expires_at = EXCLUDED.expires_at,
                     version = {self._schema.entries_table}.version + 1,
                     updated_at = timezone('UTC', now())
-                RETURNING value, version, expires_at
+                RETURNING version, expires_at
                 """,
                 key,
                 encoded,
@@ -232,8 +256,7 @@ class PostgresCache:
         finally:
             if close_conn:
                 await self._pool.release(conn)
-        decoded = self.serializer.loads(row["value"])
-        typed_row = _CacheRow(value=decoded, version=row["version"], expires_at=row["expires_at"])
+        typed_row = _CacheRow(value=value, version=row["version"], expires_at=row["expires_at"])
         ttl = self._ttl_from_row(typed_row)
         self._local_cache.set(key, typed_row["value"], typed_row["version"], ttl)
         return typed_row
