@@ -91,12 +91,12 @@ See [`benchmarks/README.md`](benchmarks/README.md) for installation steps, CLI f
 
 ### Benchmark summary
 
-backend | write mean (ms) | write p95 (ms) | write ops/s | read mean (ms) | read p95 (ms) | read ops/s | hit rate
-------|---------|----------------|-------------|---------------|------------|---------|---------
-postgres                          | 11.483          | 23.781         | 1132.8      | 2.028          | 4.799         | 9944.8     | 95.8%   
-postgres-no-local-cache           | 13.839          | 33.596         | 966.6       | 3.327          | 6.194         | 7068.4     | 96.4%   
-postgres-no-notify                | 1.440           | 2.981          | 3888.9      | 0.184          | 1.590         | 24802.6    | 98.3%   
-valkey                            | 0.515           | 0.691          | 4754.1      | 0.464          | 0.626         | 19030.5    | 99.2% 
+backend                 | write mean (ms) | write p95 (ms) | write ops/s | read mean (ms) | read p95 (ms) | read ops/s | hit rate
+------------------------+-----------------+----------------+-------------+----------------+---------------+------------+---------
+postgres-cache          | 10.983          | 20.850         | 1174.0      | 2.197          | 4.903         | 9339.9     | 96.7%
+postgres-no-local-cache | 2.850           | 4.583          | 2882.4      | 1.798          | 2.660         | 10885.0    | 98.7%
+postgres-no-notify      | 1.297           | 2.417          | 4038.9      | 0.190          | 1.466         | 24938.3    | 98.3%
+valkey                  | 0.432           | 0.564          | 4963.5      | 0.408          | 0.542         | 19431.2    | 99.3%
 
 Interpretation: "optimizations" implemented in this libray, does not provide any advantage.
 
