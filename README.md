@@ -91,12 +91,12 @@ See [`benchmarks/README.md`](benchmarks/README.md) for installation steps, CLI f
 
 ### Benchmark summary
 
-backend                 | write mean (ms) | write p95 (ms) | write ops/s | read mean (ms) | read p95 (ms) | read ops/s | hit rate
-------------------------+-----------------+----------------+-------------+----------------+---------------+------------+---------
-postgres-cache          | 10.983          | 20.850         | 1174.0      | 2.197          | 4.903         | 9339.9     | 96.7%
-postgres-no-local-cache | 2.850           | 4.583          | 2882.4      | 1.798          | 2.660         | 10885.0    | 98.7%
-postgres-no-notify      | 1.297           | 2.417          | 4038.9      | 0.190          | 1.466         | 24938.3    | 98.3%
-valkey                  | 0.432           | 0.564          | 4963.5      | 0.408          | 0.542         | 19431.2    | 99.3%
+| backend                 | write mean (ms) | write p95 (ms) | write ops/s | read mean (ms) | read p95 (ms) | read ops/s | hit rate |
+|-------------------------|-----------------|----------------|-------------|----------------|---------------|------------|----------|
+| postgres-cache          | 12.887          | 29.943         | 1023.4      | 1.937          | 5.099         | 10071.9    | 95.9%    |
+| postgres-no-local-cache | 4.290           | 8.626          | 2284.4      | 2.274          | 3.600         | 9364.5     | 97.9%    |
+| postgres-no-notify      | 1.458           | 2.958          | 3865.2      | 0.208          | 1.624         | 23652.9    | 98.4%    |
+| valkey                  | 0.502           | 0.691          | 4804.9      | 0.468          | 0.683         | 18786.0    | 99.1%    |
 
 `postgres-no-local-cache` disables the client-side cache (`local_max_entries=0`), so the benchmark issues direct Postgres reads without invalidating values pulled from the backend.
 `postgres-no-notify` turns off LISTEN/NOTIFY fan-out (`disable_notiffy=True`), which means no backend invalidations occur and only the local TTL policy expires entries.
