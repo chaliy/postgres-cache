@@ -14,14 +14,11 @@ from dataclasses import dataclass, replace
 from typing import Any, Iterable, List, Protocol
 
 import asyncpg
+from redis import asyncio as aioredis
 
 from postgres_cache import CacheSettings, PostgresCache
 from postgres_cache.schema import resolve_schema_names
 
-try:
-    from redis import asyncio as aioredis
-except ModuleNotFoundError:  # pragma: no cover - redis is declared as a dependency
-    aioredis = None  # type: ignore
 
 DEFAULT_POSTGRES_DSN = "postgresql://cache_user:cache_pass@localhost:15432/cache_proto"
 DEFAULT_VALKEY_URL = "redis://localhost:16379/0"
@@ -85,21 +82,17 @@ class PostgresBenchmarkClient:
 
 class ValkeyBenchmarkClient:
     def __init__(self, url: str) -> None:
-        if aioredis is None:  # pragma: no cover - dependency provided via pyproject
-            raise RuntimeError("redis extra is not installed")
         self._url = url
         self._client: aioredis.Redis | None = None
 
     async def connect(self) -> None:
-        if aioredis is None:  # pragma: no cover
-            return
         self._client = aioredis.from_url(
             self._url, encoding="utf-8", decode_responses=True
         )
 
     async def close(self) -> None:
         if self._client:
-            await self._client.close()
+            await self._client.aclose()
 
     async def set(self, key: str, value: Any, ttl_seconds: float) -> None:
         if not self._client:
@@ -161,13 +154,11 @@ class ValkeyBackend:
         self._url = url
 
     async def prepare(self) -> None:
-        if aioredis is None:
-            raise RuntimeError("redis extra is not installed")
         client = aioredis.from_url(self._url)
         try:
             await client.flushdb()
         finally:
-            await client.close()
+            await client.aclose()
 
     def make_client(self) -> BenchmarkClient:
         return ValkeyBenchmarkClient(self._url)

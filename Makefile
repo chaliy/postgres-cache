@@ -22,6 +22,6 @@ harness-load-test:
 
 benchmark:
 	bash -c 'set -euo pipefail; \
-  		docker compose -f benchmarks/compose.yaml up -d; \
+ 		docker compose -f benchmarks/compose.yaml up -d --wait --wait-timeout 120; \
   		trap "docker compose -f benchmarks/compose.yaml down" EXIT; \
   		python benchmarks/cache_benchmark.py'

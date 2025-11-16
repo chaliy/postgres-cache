@@ -41,8 +41,8 @@ docker compose -f benchmarks/compose.yaml down
 ```
 
 Environment variables `POSTGRES_DSN` and `VALKEY_URL` control the connection targets. The
-defaults already line up with the Docker Compose stack (`postgresql://cache_user:cache_pass@localhost:5432/cache_proto`
-and `redis://localhost:6379/0`).
+defaults already line up with the Docker Compose stack (`postgresql://cache_user:cache_pass@localhost:15432/cache_proto`
+and `redis://localhost:16379/0`), which avoids clashing with the load-test harness ports.
 
 To benchmark a subset of backends use the `--backends` flag:
 

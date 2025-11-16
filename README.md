@@ -81,15 +81,13 @@ Python 3.11+ and uv are required for local development.
 - `make harness-load-test` – launch the load harness against a local Postgres.
 - `make examples-basic-usage` / `make examples-fastapi-api-cache` – run example scripts.
 
-## Load harness & schema
+## Load testing
 
 See [`harness/README.md`](harness/README.md) for the load-test instructions and `make harness-load-test` helper.
 
 ## Benchmarking
 
-- [`benchmarks/cache_benchmark.py`](benchmarks/cache_benchmark.py) orchestrates concurrent writers/readers so you can compare latency, throughput, and hit-rate numbers for the Postgres cache (with the full feature set, local cache disabled, and LISTEN/NOTIFY disabled) as well as Valkey.
-- [`benchmarks/compose.yaml`](benchmarks/compose.yaml) launches matching Postgres + Valkey containers, and `make benchmark` wires them up, runs all selected backends, and tears the stack down afterwards.
-- See [`benchmarks/README.md`](benchmarks/README.md) for installation steps, CLI flags, and instructions for adding more backends to the report.
+See [`benchmarks/README.md`](benchmarks/README.md) for installation steps, CLI flags, and instructions for adding more backends to the report.
 
 ## License
 
