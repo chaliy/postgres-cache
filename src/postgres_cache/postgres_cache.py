@@ -72,7 +72,9 @@ class PostgresCache:
             ) from exc
 
         cache_wants_notifications = self._local_cache.enabled
-        self._notifications_enabled = cache_wants_notifications and not self.settings.disable_notiffy
+        self._notifications_enabled = (
+            cache_wants_notifications and not self.settings.disable_notiffy
+        )
         if not self._notifications_enabled:
             self._notification_queue = None
             self._listener = None
