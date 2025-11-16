@@ -81,7 +81,6 @@ Python 3.11+ and uv are required for local development.
 - `make harness-load-test` – launch the load harness against a local Postgres.
 - `make examples-basic-usage` / `make examples-fastapi-api-cache` – run example scripts.
 
-
 ## Load harness & schema
 
 See [`harness/README.md`](harness/README.md) for the load-test instructions and `make harness-load-test` helper.
