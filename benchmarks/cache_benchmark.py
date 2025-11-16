@@ -332,14 +332,12 @@ def parse_args() -> argparse.Namespace:
             "postgres",
             "postgres-no-local-cache",
             "postgres-no-notify",
-            "postgres-no-local-cache-no-notify",
             "valkey",
         ],
         default=[
             "postgres",
             "postgres-no-local-cache",
             "postgres-no-notify",
-            "postgres-no-local-cache-no-notify",
             "valkey",
         ],
         help="Backends to benchmark",
@@ -385,15 +383,6 @@ async def async_main() -> None:
                 PostgresBackend(
                     args.postgres_dsn,
                     name="postgres-no-notify",
-                    disable_notify=True,
-                )
-            )
-        elif backend_name == "postgres-no-local-cache-no-notify":
-            backends.append(
-                PostgresBackend(
-                    args.postgres_dsn,
-                    name="postgres-no-local-cache-no-notify",
-                    disable_local_cache=True,
                     disable_notify=True,
                 )
             )

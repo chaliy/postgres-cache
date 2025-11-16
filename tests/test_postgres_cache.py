@@ -71,6 +71,23 @@ async def test_disable_notifications_skips_listener(db_dsn: str) -> None:
 
 
 @pytest.mark.asyncio
+async def test_local_cache_can_be_disabled(db_dsn: str) -> None:
+    settings = CacheSettings(dsn=db_dsn, local_max_entries=0)
+    cache = PostgresCache(settings)
+    await cache.connect()
+    try:
+        assert cache._listener is None  # type: ignore[attr-defined]
+        assert cache._notification_task is None  # type: ignore[attr-defined]
+        await cache.set("alpha", {"value": 1}, ttl_seconds=5)
+        assert await cache.get("alpha") == {"value": 1}
+        stats = cache._local_cache.stats()  # type: ignore[attr-defined]
+        assert stats["items"] == 0
+        assert stats["enabled"] == 0
+    finally:
+        await cache.close()
+
+
+@pytest.mark.asyncio
 async def test_connect_reports_too_many_connections(monkeypatch, db_dsn: str) -> None:
     async def fake_create_pool(*args, **kwargs):
         raise TooManyConnectionsError("sorry, too many clients already")
