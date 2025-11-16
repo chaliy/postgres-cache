@@ -26,6 +26,7 @@ The target will:
    - `postgres` – full feature set.
    - `postgres-no-local-cache` – disables the client-side cache (`local_max_entries=0`).
    - `postgres-no-notify` – disables LISTEN/NOTIFY fan-out (`disable_notiffy=True`).
+   - `postgres-no-local-cache-no-notify` – disables both optimizations above.
    - `valkey` – native Valkey/Redis.
 3. Tear the containers down when the benchmark completes (even if it fails).
 

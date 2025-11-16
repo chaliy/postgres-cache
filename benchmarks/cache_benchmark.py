@@ -19,7 +19,6 @@ from redis import asyncio as aioredis
 from postgres_cache import CacheSettings, PostgresCache
 from postgres_cache.schema import resolve_schema_names
 
-
 DEFAULT_POSTGRES_DSN = "postgresql://cache_user:cache_pass@localhost:15432/cache_proto"
 DEFAULT_VALKEY_URL = "redis://localhost:16379/0"
 
@@ -86,9 +85,7 @@ class ValkeyBenchmarkClient:
         self._client: aioredis.Redis | None = None
 
     async def connect(self) -> None:
-        self._client = aioredis.from_url(
-            self._url, encoding="utf-8", decode_responses=True
-        )
+        self._client = aioredis.from_url(self._url, encoding="utf-8", decode_responses=True)
 
     async def close(self) -> None:
         if self._client:
@@ -311,7 +308,9 @@ def format_summary_table(results: List[BenchmarkSummary]) -> str:
         for result in results
     ]
 
-    col_widths = [max(len(header), *(len(row[idx]) for row in rows)) for idx, header in enumerate(headers)]
+    col_widths = [
+        max(len(header), *(len(row[idx]) for row in rows)) for idx, header in enumerate(headers)
+    ]
 
     def _format_row(row: List[str]) -> str:
         return " | ".join(cell.ljust(col_widths[idx]) for idx, cell in enumerate(row))
@@ -333,21 +332,27 @@ def parse_args() -> argparse.Namespace:
             "postgres",
             "postgres-no-local-cache",
             "postgres-no-notify",
+            "postgres-no-local-cache-no-notify",
             "valkey",
         ],
         default=[
             "postgres",
             "postgres-no-local-cache",
             "postgres-no-notify",
+            "postgres-no-local-cache-no-notify",
             "valkey",
         ],
         help="Backends to benchmark",
     )
     parser.add_argument("--writers", type=int, default=16, help="Number of concurrent writers")
     parser.add_argument("--readers", type=int, default=32, help="Number of concurrent readers")
-    parser.add_argument("--write-iterations", type=int, default=400, help="Writes per writer client")
+    parser.add_argument(
+        "--write-iterations", type=int, default=400, help="Writes per writer client"
+    )
     parser.add_argument("--read-iterations", type=int, default=800, help="Reads per reader client")
-    parser.add_argument("--keyspace", type=int, default=64, help="Number of cache keys in the rotation")
+    parser.add_argument(
+        "--keyspace", type=int, default=64, help="Number of cache keys in the rotation"
+    )
     parser.add_argument("--ttl", type=float, default=5.0, help="TTL for all writes in seconds")
     return parser.parse_args()
 
@@ -380,6 +385,15 @@ async def async_main() -> None:
                 PostgresBackend(
                     args.postgres_dsn,
                     name="postgres-no-notify",
+                    disable_notify=True,
+                )
+            )
+        elif backend_name == "postgres-no-local-cache-no-notify":
+            backends.append(
+                PostgresBackend(
+                    args.postgres_dsn,
+                    name="postgres-no-local-cache-no-notify",
+                    disable_local_cache=True,
                     disable_notify=True,
                 )
             )
